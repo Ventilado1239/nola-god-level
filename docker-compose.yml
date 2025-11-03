@@ -1,0 +1,70 @@
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:15
+    container_name: godlevel-db
+    environment:
+      POSTGRES_DB: challenge_db
+      POSTGRES_USER: challenge
+      POSTGRES_PASSWORD: challenge_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./analytics-schema.sql:/docker-entrypoint-initdb.d/02-analytics-schema.sql
+      # --- REMOVA A LINHA '03-materialized-views.sql' DAQUI ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U challenge -d challenge_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  data-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: godlevel-data-gen
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://challenge:challenge_2024@postgres:5432/challenge_db
+    command: >
+      sh -c "
+        echo 'STEP 1: Generating challenge data...' &&
+        python generate_data.py --db-url postgresql://challenge:challenge_2024@postgres:5432/challenge_db &&
+        echo 'STEP 2: Running ETL to build analytics tables...' &&
+        python etl.py &&
+        echo 'Data generation and ETL complete.'
+      "
+    profiles: ["tools"] 
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: godlevel-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://challenge:challenge_2024@postgres:5432/challenge_db 
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: godlevel-ui
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
+    driver: local
