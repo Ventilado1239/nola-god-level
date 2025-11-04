@@ -69,6 +69,10 @@ KPIs e tabelas usam um componente `DrillLink` que filtra o app e navega para a t
 
 **Pré-requisitos:** Docker e Docker Compose instalados.
 
+Crie um arquivo .env no backend com o seguinte codigo
+DATABASE_URL=postgresql://challenge:challenge_2024@postgres:5432/challenge_db
+ALLOWED_ORIGINS=http://localhost:8080
+
 O setup é 100% containerizado e reprodutível, como solicitado no `FAQ.md` ("Clone, docker compose up, acesse localhost:3000" deve funcionar).
 
 ### 1. Iniciar o Banco de Dados
