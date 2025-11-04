@@ -1,0 +1,152 @@
+# 🏆 Nola Analytics - Solução God Level Coder Challenge
+
+Esta é uma plataforma full-stack de Business Intelligence, construída para resolver o problema da "Maria": donos de restaurante que possuem milhares de dados mas não conseguem extrair insights acionáveis de forma rápida e flexível.
+
+A solução é uma aplicação web 100% containerizada (Frontend, Backend, ETL, Banco de Dados) que transforma 500.000+ registros de vendas em uma ferramenta de exploração de dados instantânea.
+
+---
+
+## ✨ Features Principais
+
+A plataforma vai além de um dashboard fixo e entrega um conjunto de ferramentas que resolvem a dor do usuário, com foco em performance e UX.
+
+### 1. Dashboard de Overview Instantâneo
+
+A tela principal (`/dashboard`) carrega em menos de 1 segundo e apresenta:
+
+#### KPIs Essenciais
+Faturamento, Pedidos e Ticket Médio, com indicadores de variação percentual em relação ao período anterior.
+
+#### Tooltips Explicativos
+Cada KPI possui um tooltip que explica ao usuário não-técnico *como* a métrica é calculada (ex: "Soma de 'total_revenue' da 'mv_kpis_daily'").
+
+#### Insights Automáticos
+Um card que gera insights em linguagem natural (ex: "📈 **Crescimento:** O produto 'X' cresceu R$ Y..."), rodando uma análise no backend.
+
+#### Rankings
+Módulos de Top Produtos, Top Canais, e Receita por Hora para identificação rápida de padrões.
+
+### 2. Fluxo "Insight-Ação": Clientes em Risco (RFM)
+
+Esta é a feature de maior valor de negócio, conectando um insight a uma ação.
+
+#### Insight
+O dashboard identifica "Clientes em Risco" usando uma análise RFM (Recência, Frequência) que roda no backend.
+
+#### Ação
+Em vez de ser apenas um número, o KPI é um link. Clicar em "Ver lista →" leva o usuário direto para a tela de Exploração, já filtrada com a lista de clientes que precisam de reengajamento.
+
+### 3. Ferramenta de Exploração Flexível (O Coração da Solução)
+
+A tela `/explore` é a verdadeira solução para a "dor da flexibilidade" da Maria. Ela permite ao usuário:
+* Cruzar qualquer **Métrica** (Faturamento, Pedidos, Ticket Médio).
+* Com qualquer **Dimensão** (Canal, Loja, Produto, Dia da semana, Hora do dia).
+* Visualizar os dados em Gráfico de Barras e Tabela Virtualizada.
+* Aplicar filtros globais (Data, Loja, Canal).
+
+### 4. Visões Salvas (Business Intelligence Real)
+
+Para transformar a exploração em uma ferramenta de negócio, a feature "Visões Salvas" permite que a Maria salve suas análises customizadas no `localStorage` para carregar com um clique no futuro.
+
+### 5. Heatmap de Horários de Pico
+
+O dashboard renderiza um Heatmap completo de Receita por Dia da Semana vs. Hora do Dia. Isso é populado por uma View Materializada específica (`mv_heatmap`) para performance máxima.
+
+### 6. Polimento de UX & DX
+
+#### Dark Mode
+A aplicação inteira suporta um tema escuro (usando `next-themes`), salvo no `localStorage`.
+
+#### React Query Caching
+O frontend usa React Query (`@tanstack/react-query`) para cache de API, evitando re-fetching desnecessário.
+
+#### Drill-Down Links
+KPIs e tabelas usam um componente `DrillLink` que filtra o app e navega para a tela de exploração, criando um fluxo de análise intuitivo.
+
+---
+
+## ⚡ Quick Start (Como Executar)
+
+**Pré-requisitos:** Docker e Docker Compose instalados.
+
+O setup é 100% containerizado e reprodutível, como solicitado no `FAQ.md` ("Clone, docker compose up, acesse localhost:3000" deve funcionar).
+
+### 1. Iniciar o Banco de Dados
+
+Primeiro, inicie o contêiner do PostgreSQL em modo "detached".
+
+```bash
+docker compose up -d postgres
+2. Gerar Dados e Rodar o ETL
+Este é o passo mais importante e o núcleo da arquitetura de dados. Este comando irá:
+
+Gerar ~500.000 vendas com generate_data.py.
+
+Executar o script etl.py para popular as tabelas analíticas e criar as Views Materializadas (mv_kpis_daily, mv_heatmap, etc.).
+
+Este processo leva de 5 a 15 minutos. Aguarde sua conclusão.
+
+Bash
+
+docker compose run --rm data-generator
+3. Iniciar a Aplicação (API + Frontend)
+Após a finalização do passo 2, inicie os serviços da API e do Frontend.
+
+Bash
+
+docker compose up -d backend frontend
+4. Acessar a Plataforma
+Pronto! A aplicação estará disponível em:
+
+Frontend (UI): http://localhost:8080 Backend (API): http://localhost:8000/docs (Documentação da API)
+
+🧠 Decisões de Arquitetura
+O AVALIACAO.md pedia por "pensamento arquitetural e decisões técnicas". Esta seção serve como o "Documento de Decisões Arquiteturais" solicitado na submissão.
+
+1. Arquitetura de Performance: ETL + Views Materializadas
+O requisito mais difícil era garantir queries rápidas (< 1s) sobre um volume de 500k+ registros.
+
+Decisão
+Em vez de fazer a API consultar as tabelas sales "raw" a cada requisição (o que seria lento), implementei um pipeline de ETL (etl.py).
+
+Como Funciona
+Este script transforma os dados brutos em tabelas analíticas (analytics_sales) e 3 Views Materializadas:
+
+mv_kpis_daily: Para os KPIs principais (Receita, Pedidos) e a análise de RFM.
+
+mv_heatmap: Agrega dados por Dia da Semana e Hora, alimentando o heatmap.
+
+mv_top_products_daily: Alimenta os rankings de produtos.
+
+Resultado
+A API (FastAPI) lê apenas essas MVs, que são extremamente rápidas. Isso garante que o dashboard carregue instantaneamente e resolve o requisito de performance da forma mais profissional e escalável possível.
+
+2. Foco na Solução do Problema: Exploração + Visões Salvas
+O problema da "Maria" não era não ter um dashboard, era não ter flexibilidade. O AVALIACAO.md prioriza "resolver a dor do usuário".
+
+Decisão
+O coração da aplicação não é o DashboardPage.tsx, mas sim o ExplorePage.tsx.
+
+Como Funciona
+Esta tela permite ao usuário cruzar métricas (Faturamento, Pedidos, Ticket) com qualquer dimensão (Canal, Loja, Produto, Hora, etc.), respondendo perguntas complexas.
+
+Resultado
+Para transformar isso em uma ferramenta de negócio real, a feature SavedViews.tsx foi implementada. Ela permite que a Maria salve suas análises customizadas no localStorage e as acesse com um clique, resolvendo sua dor central.
+
+3. UX Focada em Insights Acionáveis (Polimento)
+Uma boa solução não apenas mostra dados, ela gera insights e é agradável de usar.
+
+Insight de Negócio (RFM)
+O backend implementa uma análise de RFM (api_rfm_analysis) para identificar "Clientes em Risco" (clientes fiéis que não compram há 30+ dias).
+
+Fluxo "Insight-Ação"
+O dashboard (DashboardPage.tsx) não mostra apenas o número de clientes em risco. Ele tem um link ("Ver lista →") que usa o componente DrillLink.tsx para levar o usuário direto à tela de Exploração (ExplorePage.tsx) já filtrada, conectando o insight à ação.
+
+Tooltips de KPI
+O KpiCard.tsx possui tooltips que explicam ao usuário não-técnico como cada métrica é calculada.
+
+Dark Mode
+A aplicação tem um tema escuro (ThemeToggle.tsx) para polimento profissional, com classes dark: aplicadas em todos os componentes.
+
+Cache de API
+O frontend usa React Query (app/providers.tsx) para fazer o cache inteligente das requisições, evitando re-fetching desnecessário.
