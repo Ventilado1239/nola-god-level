@@ -1,5 +1,5 @@
 // frontend/src/features/explore/ExplorePage.tsx
-// (CORRIGIDO: Adiciona 'rfm_at_risk' aos insights)
+// (CORRIGIDO)
 
 import { useState, useEffect, useMemo } from "react";
 import { useFilters } from "@/features/filters/FiltersContext";
@@ -9,7 +9,7 @@ import {
   getCustomCompare,
   getTopItems,
   getDeliveryPerformance,
-  getRfmList // <-- 1. IMPORTE A NOVA FUNÇÃO
+  getRfmList 
 } from "@/lib/api";
 import type { CustomResponse, Filters, TopItem } from "@/lib/types";
 import Button from "@/components/ui/Button";
@@ -29,7 +29,6 @@ const metricOpts = [
   { value: "ticket", label: "Ticket médio" },
 ];
 
-// --- 2. ADICIONA NOVAS OPÇÕES DE AGRUPAMENTO ---
 const groupOpts = [
   { value: "channel", label: "Canal" },
   { value: "store", label: "Loja" },
@@ -38,13 +37,13 @@ const groupOpts = [
   { value: "hour", label: "Hora do dia" },
   { value: "top_items", label: "Insight: Top Itens Adicionais" },
   { value: "delivery_perf", label: "Insight: Performance Entrega" },
-  { value: "rfm_at_risk", label: "Insight: Clientes em Risco" }, // <-- ADICIONADO AQUI
+  { value: "rfm_at_risk", label: "Insight: Clientes em Risco" },
 ];
 
 const INSIGHT_ENDPOINTS = {
   top_items: getTopItems,
   delivery_perf: getDeliveryPerformance,
-  rfm_at_risk: getRfmList, // <-- ADICIONADO AQUI
+  rfm_at_risk: getRfmList,
 };
 
 
@@ -129,17 +128,41 @@ export default function ExplorePage() {
     return Array.from(map.values());
   }, [data, compare, compareData]);
 
-  const runPreset = (p: { metric: string; group: string; limit: number }) => {
+  
+  // --- AQUI ESTÁ A CORREÇÃO ---
+  // 1. Define o tipo que o InsightPresets envia
+  type PresetPatch = Partial<{
+    metric: string;
+    group: string;
+    start: string;
+    end: string;
+    store?: string;
+    channel?: string;
+    limit?: number;
+  }>;
+
+  // 2. Atualiza a função para aceitar o tipo 'PresetPatch'
+  const runPreset = (p: PresetPatch) => {
     setCompare(false);
-    setMetric(p.metric as any);
-    setGroup(p.group as any);
-    setLimit(p.limit);
+    
+    // 3. Usa os valores do patch ou mantém os valores de estado atuais como padrão
+    const newMetric = p.metric ?? metric;
+    const newGroup = p.group ?? group;
+    const newLimit = p.limit ?? limit;
+
+    setMetric(newMetric as any);
+    setGroup(newGroup as any);
+    setLimit(newLimit);
+    
+    // 4. Aplica os filtros globais
     setFilters({
-      metric: p.metric,
-      group_by: p.group,
-      limit: p.limit,
+      metric: newMetric,
+      group_by: newGroup,
+      limit: newLimit,
     });
   };
+  // --- FIM DA CORREÇÃO ---
+
 
   const rows = useMemo(() => data?.data ?? [], [data]);
 
@@ -225,7 +248,7 @@ export default function ExplorePage() {
           subtitle="Um clique para perguntas comuns"
         />
         <CardContent>
-          <InsightPresets run={runPreset} />
+          <InsightPresets onApply={runPreset} onRun={() => {}} />
         </CardContent>
       </Card>
 
