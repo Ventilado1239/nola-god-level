@@ -1,10 +1,16 @@
 // frontend/src/lib/api.ts
-export type KPI = { revenue: number; orders: number; avg_ticket: number };
-export type OverviewResponse = { kpis: KPI };
-export type HeatmapCell = { day_of_week: number; hour: number; value: number };
-export type HeatmapResponse = { data: HeatmapCell[] };
-export type Row = { label: string; value: number };
-export type CustomResponse = { data: Row[] };
+// (CORRIGIDO)
+
+// --- 1. IMPORTA OS TIPOS CORRETOS ---
+import type {
+  OverviewResponse,
+  HeatmapResponse,
+  CustomResponse,
+  TopItem,
+} from "./types";
+
+// --- 2. REMOVE AS DEFINIÇÕES DE TIPO LOCAIS ANTIGAS ---
+// (KPI, OverviewResponse, HeatmapCell, HeatmapResponse, Row, CustomResponse foram removidos daqui)
 
 function resolveApiBase(): string {
   const env = (import.meta as any).env?.VITE_API_BASE;
@@ -68,12 +74,15 @@ export async function getTopItems(p:{metric:string;group_by:string;start_date:st
 export async function getDeliveryPerformance(p:{start_date:string;end_date:string;store?:string;channel?:string;}):Promise<CustomResponse>{
   return fetchApi("/insights/delivery-performance", p);
 }
-export async function getRfmAnalysis(p:{start_date:string;end_date:string;store?:string;channel?:string;}):Promise<{segments:Array<{segment:string;customers:number;revenue:number}>}>{
+
+// --- 3. TIPO DE RETORNO CORRIGIDO ---
+export async function getRfmAnalysis(p:{start_date:string;end_date:string;store?:string;channel?:string;}):Promise<{at_risk_count: number}>{
   return fetchApi("/insights/rfm-analysis", p);
 }
-export async function getRfmList(p:{start_date:string;end_date:string;segment?:string;limit?:number;store?:string;channel?:string;}):Promise<{data:Row[]}>{
+
+export async function getRfmList(p:{start_date:string;end_date:string;segment?:string;limit?:number;store?:string;channel?:string;}):Promise<{data:TopItem[]}>{
   const raw = await fetchApi<{data:Array<{customer_id:string;name?:string;label?:string;value?:number;revenue?:number;orders?:number}>}>("/insights/rfm-list", p);
-  const data: Row[] = (raw.data||[]).map(c => ({ label: String(c.label ?? c.name ?? (c.customer_id?`Cliente ${c.customer_id}`:"Cliente")), value: Number(c.value ?? c.revenue ?? c.orders ?? 0) }));
+  const data: TopItem[] = (raw.data||[]).map(c => ({ label: String(c.label ?? c.name ?? (c.customer_id?`Cliente ${c.customer_id}`:"Cliente")), value: Number(c.value ?? c.revenue ?? c.orders ?? 0) }));
   return { data };
 }
 export async function getHealth():Promise<{status:"ok"}>{ return fetchApi("/healthz"); }
