@@ -1,5 +1,5 @@
 // frontend/src/features/dashboard/DashboardPage.tsx
-// (CORRIGIDO: Removido o DrillLink do Card "Clientes em Risco")
+// (CORRIGIDO: Passa o DrillLink para o KpiCard de Clientes em Risco)
 
 import { useFilters } from "@/features/filters/FiltersContext";
 import FilterBar from "@/components/layout/FilterBar";
@@ -14,10 +14,9 @@ import { exportToCSV, exportToXLSX } from "@/lib/export";
 import Heatmap from "@/components/charts/Heatmap";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
-import DrillLink from "@/components/ui/DrillLink";
+import DrillLink from "@/components/ui/DrillLink"; // <-- Import já deve existir
 import { useQuery } from "@tanstack/react-query";
 
-// ... (função renderInsight permanece a mesma) ...
 function renderInsight(text: string) {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -66,7 +65,6 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <FilterBar />
-        {/* Adiciona um 5º Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
@@ -114,12 +112,22 @@ export default function DashboardPage() {
           variation={null}
         />
         
-        {/* --- CORREÇÃO AQUI: De volta a ser um número, não um link --- */}
+        {/* --- AQUI ESTÁ A MUDANÇA --- */}
         <KpiCard 
           title="Clientes em Risco"
           value={atRiskCount.toLocaleString("pt-BR")}
-          variation={null} 
+          variation={null}
+          // 1. Passa o DrillLink como a prop 'ctaLink'
+          ctaLink={
+            <DrillLink
+              label="Ver lista →"
+              param="group_by" // 2. O parâmetro a ser filtrado é 'group_by'
+              value="rfm_at_risk" // 3. O valor é o ID do insight de RFM
+              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            />
+          }
         />
+        {/* --- FIM DA MUDANÇA --- */}
       </section>
 
       {insights.length > 0 && (
@@ -160,7 +168,7 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  exportToCSV("top_produtos.csv", data.top_products.map((p) => ({
+                  exportToCSV("top_produtos.csv", data.top_products.map((p: TopProduct) => ({
                     produto: p.product, quantidade: p.quantity, faturamento: p.revenue
                   })))
                 }
@@ -170,7 +178,7 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  exportToXLSX("top_produtos.xlsx", data.top_products.map((p) => ({
+                  exportToXLSX("top_produtos.xlsx", data.top_products.map((p: TopProduct) => ({
                     produto: p.product, quantidade: p.quantity, faturamento: p.revenue
                   })))
                 }
