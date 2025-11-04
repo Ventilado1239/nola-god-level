@@ -1,5 +1,6 @@
 # backend/main.py
 # (CORRIGIDO - PONTO 16: Adicionado endpoint /api/insights/rfm-analysis)
+# (CORREÇÃO DE BUG: Lógica de RFM > 60 dias e >= 3 pedidos era muito rígida)
 
 import os
 import json
@@ -717,7 +718,7 @@ def api_rfm_analysis(
 ):
     """
     Responde: "Quantos clientes de alto valor estão em risco de churn?"
-    Define "Risco" como: Clientes com 3+ pedidos que não compram há 60 dias.
+    Define "Risco" como: Clientes com 2+ pedidos que não compram há 30 dias.
     """
     
     # Filtra por *todo o período* até a data final
@@ -739,7 +740,6 @@ def api_rfm_analysis(
 
     where = " AND ".join(base_where)
 
-    # Este SQL usa a MV_KPIS, que é super rápida e agora tem customer_id
     sql = f"""
         WITH rfm_base AS (
             SELECT
@@ -753,7 +753,6 @@ def api_rfm_analysis(
         rfm_analysis AS (
             SELECT
                 *,
-                -- Calcula Recency em dias a partir do *fim* do período selecionado
                 ( %s::date - last_order_date ) AS recency
             FROM rfm_base
         )
@@ -761,10 +760,9 @@ def api_rfm_analysis(
             COUNT(*) as at_risk_count
         FROM rfm_analysis
         WHERE 
-            recency > 60 -- Não compra há 60 dias
-            AND frequency >= 3 -- Comprou 3+ vezes (alto valor)
+            recency > 30 -- <-- CORRIGIDO (de 60 para 30)
+            AND frequency >= 2 -- <-- CORRIGIDO (de 3 para 2)
     """
-    # Adiciona o end_date duas vezes: 1 para o WHERE, 1 para o cálculo de RECENCY
     params.append(end_date) 
     
     try:
@@ -783,7 +781,7 @@ def api_rfm_list(
     store_name: Optional[str] = Query(default=None, alias="store"),
     channel_name: Optional[str] = Query(default=None, alias="channel"),
     product: Optional[str] = Query(default=None),
-    limit: int = Query(100, ge=1, le=1000), # Permite exportar mais
+    limit: int = Query(100, ge=1, le=1000), 
 ):
     """
     Retorna a LISTA de clientes de alto valor em risco de churn.
@@ -830,8 +828,8 @@ def api_rfm_list(
         FROM rfm_analysis rfm
         JOIN {TABLE_RAW_CUSTOMERS} c ON c.id = rfm.customer_id
         WHERE 
-            rfm.recency > 60
-            AND rfm.frequency >= 3
+            rfm.recency > 30 -- <-- CORRIGIDO (de 60 para 30)
+            AND rfm.frequency >= 2 -- <-- CORRIGIDO (de 3 para 2)
         ORDER BY
             rfm.monetary DESC
         LIMIT %s;
