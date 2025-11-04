@@ -1,4 +1,8 @@
+// frontend/src/features/explore/InsightPresets.tsx
+// (CORRIGIDO: Usa o componente <Button> estilizado em vez de <button> puro)
+
 import { useCallback } from "react";
+import Button from "@/components/ui/Button"; // <-- 1. IMPORTE O COMPONENTE DE BOTÃO
 
 type PresetsProps = {
   onApply: (patch: Partial<{
@@ -24,33 +28,32 @@ export default function InsightPresets({ onApply, onRun }: PresetsProps) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button className="btn" onClick={() => applyAndRun({ metric: "revenue", group: "product", limit: 10 })}>
+      {/* --- 2. SUBSTITUA TODOS OS <button> POR <Button> --- */}
+      <Button variant="outline" onClick={() => applyAndRun({ metric: "revenue", group: "product", limit: 10 })}>
         Top 10 por faturamento
-      </button>
-      <button className="btn" onClick={() => applyAndRun({ metric: "orders", group: "channel" })}>
+      </Button>
+      <Button variant="outline" onClick={() => applyAndRun({ metric: "orders", group: "channel" })}>
         Pedidos por canal
-      </button>
-      <button className="btn" onClick={() => applyAndRun({ metric: "ticket", group: "store" })}>
+      </Button>
+      <Button variant="outline" onClick={() => applyAndRun({ metric: "ticket", group: "store" })}>
         Ticket por loja
-      </button>
-      <button className="btn" onClick={() => applyAndRun({ metric: "revenue", group: "hour" })}>
+      </Button>
+      <Button variant="outline" onClick={() => applyAndRun({ metric: "revenue", group: "hour" })}>
         Receita por hora
-      </button>
-      <button className="btn" onClick={() => applyAndRun({ metric: "revenue", group: "weekday" })}>
+      </Button>
+      <Button variant="outline" onClick={() => applyAndRun({ metric: "revenue", group: "weekday" })}>
         Receita por dia da semana
-      </button>
-      {/* >>> ESTE AQUI <<< */}
-      <button
-        className="btn"
+      </Button>
+      <Button
+        variant="outline"
         onClick={() => applyAndRun({
-          // métrica é irrelevante p/ RFM; deixo "revenue" só para manter UI consistente
           metric: "revenue",
           group: "rfm_at_risk",
           limit: 10
         })}
       >
         Top 10 Clientes em Risco
-      </button>
+      </Button>
     </div>
   );
 }
