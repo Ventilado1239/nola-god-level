@@ -1,79 +1,142 @@
-# 🏆 God Level Coder Challenge
+# Nola Analytics
 
-## O Problema
+Plataforma de análise operacional para restaurantes, construída sobre um conjunto sintético de mais de **500 mil vendas**, distribuídas por **50 lojas** e **6 meses**.
 
-Donos de restaurantes gerenciam operações complexas através de múltiplos canais (presencial, iFood, Rappi, app próprio). Eles têm dados de **vendas, produtos, clientes e operações**, mas não conseguem extrair insights personalizados para tomar decisões de negócio.
+O projeto transforma dados transacionais em indicadores, segmentação RFM, comparações de período e análises exploratórias que podem ser usadas sem escrever SQL.
 
-Ferramentas como Power BI são genéricas demais. Dashboards fixos não respondem perguntas específicas. **Como empoderar donos de restaurantes a explorarem seus próprios dados?**
+> Os números de vendas deste repositório são dados sintéticos gerados para um desafio técnico. Não representam clientes ou faturamento reais.
 
-## Seu Desafio
+## O que foi implementado
 
-Construa uma solução que permita donos de restaurantes **criarem suas próprias análises** sobre seus dados operacionais. Pense: "Power BI para restaurantes" ou "Metabase específico para food service".
+- dashboard com receita, pedidos, ticket médio, clientes em risco e variações por período;
+- filtros por loja, canal e intervalo de datas;
+- heatmap de vendas por dia e hora;
+- análise RFM e lista acionável de clientes em risco;
+- comparação de períodos e análises personalizadas;
+- exportação de resultados para Excel (`.xlsx`);
+- visualizações salvas no navegador;
+- API REST com **10 endpoints**;
+- pipeline ETL e **3 views materializadas** no PostgreSQL;
+- interface responsiva com tema claro/escuro, estados de carregamento e tratamento de erros.
 
-### O que esperamos
+## Arquitetura
 
-Uma plataforma onde um dono de restaurante possa:
-- Visualizar métricas relevantes (faturamento, produtos mais vendidos, horários de pico)
-- Criar dashboards personalizados sem escrever código
-- Comparar períodos e identificar tendências
-- Extrair valor de dados complexos de forma intuitiva
+```text
+Dados sintéticos (Python)
+        │
+        ▼
+PostgreSQL 15 ── ETL ── 3 views materializadas
+        │
+        ▼
+FastAPI + psycopg2 (10 endpoints)
+        │
+        ▼
+React + TypeScript + React Query + Recharts
+```
 
-### O que você recebe
+As views materializadas reduzem o custo das consultas recorrentes do dashboard:
 
-- Script para geração de **500.000 vendas** de 6 meses (50 lojas, múltiplos canais)
-- Schema PostgreSQL com dados realistas de operação
-- Liberdade total de tecnologias e arquitetura
-- Liberdade total no uso de AI e ferramentas de geração de código
+- `mv_kpis_daily`: indicadores diários e suporte a comparações;
+- `mv_heatmap`: agregação por dia da semana e hora;
+- `mv_top_products_daily`: ranking diário de produtos.
 
-### O que você entrega
+O script `etl.py` atualiza essas estruturas após a geração ou carga dos dados.
 
-1. Uma solução funcionando (deployed ou local) - com frontend e backend adequados ao banco fornecido
-2. Documentação de decisões arquiteturais
-3. Demo em vídeo (5-10 min) explicando sua abordagem - mostrando a solução funcional e deployada / rodando na sua máquina, apresentando-a no nível de detalhes que julgar relevante
-4. Código bem escrito e testável
+## Stack
 
-## 📚 Documentação
+| Camada | Tecnologias |
+|---|---|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, React Query, Recharts, Zod |
+| Backend | Python, FastAPI, Uvicorn, Pydantic, psycopg2 |
+| Dados | PostgreSQL 15, SQL, ETL em Python, views materializadas |
+| Infra local | Docker e Docker Compose |
 
-| Documento | Descrição |
-|-----------|-----------|
-| [PROBLEMA.md](./PROBLEMA.md) | Contexto detalhado, persona Maria, dores do usuário |
-| [DADOS.md](./DADOS.md) | Schema completo, padrões, volume de dados |
-| [AVALIACAO.md](./AVALIACAO.md) | Como avaliaremos sua solução |
-| [FAQ.md](./FAQ.md) | Perguntas frequentes |
-| [QUICKSTART.md](./QUICKSTART.md) | Tutorial rápido para começar o desafio |
+## Execução com Docker
 
-## Avaliação
+Pré-requisitos: Docker Desktop ou Docker Engine com Compose.
 
-**Não** estamos avaliando se você seguiu instruções específicas.  
-**Sim** estamos avaliando:
-- Pensamento arquitetural e decisões técnicas
-- Qualidade da solução para o problema do usuário
-- Performance e escala
-- UX e usabilidade
-- Metodologia de trabalho e entrega
+```bash
+git clone https://github.com/Ventilado1239/nola-god-level.git
+cd nola-god-level
 
+# Sobe o banco e gera o conjunto sintético de dados.
+docker compose up -d postgres
+docker compose run --rm data-generator
 
-## Prazo
+# Sobe API e interface.
+docker compose up -d backend frontend
+```
 
-Até 03/11/2025 às 23:59.
+Serviços locais:
 
-## Submissão
+- interface: `http://localhost:8080`;
+- API: `http://localhost:8000`;
+- documentação OpenAPI: `http://localhost:8000/docs`;
+- health check: `http://localhost:8000/api/healthz`.
 
-Mande um email para gsilvestre@arcca.io
+A primeira geração de 500 mil vendas pode levar alguns minutos, dependendo da máquina.
 
-Com:
-- Link do repositório (público ou nos dê acesso)
-- Link do vídeo demo (5-10 min)
-- Link do deploy (opcional mas valorizado)
-- Documento de decisões arquiteturais
+## Execução sem Docker
 
-## Suporte
-- 💬 **Discord**: https://discord.gg/pRwmm64Vej
-- 📧 **Email**: gsilvestre@arcca.io
-- 📧 **Telefone**: (11) 93016 - 3509
+### Backend
 
----
+```bash
+cd backend
+python -m venv .venv
 
-**Não queremos que você adivinhe o que queremos. Queremos ver como VOCÊ resolveria este problema.**
+# Windows
+.venv\Scripts\activate
 
-_Nola • 2025_
+# Linux/macOS
+# source .venv/bin/activate
+
+pip install -r requirements.txt
+set DATABASE_URL=postgresql://challenge:challenge_2024@localhost:5432/challenge_db
+uvicorn main:app --reload --port 8000
+```
+
+No Linux/macOS, use `export DATABASE_URL=...` no lugar de `set`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Estrutura principal
+
+```text
+nola-god-level/
+├── backend/                 # API FastAPI
+├── frontend/                # SPA React/TypeScript
+├── analytics-schema.sql     # views e índices analíticos
+├── database-schema.sql      # modelo transacional
+├── generate_data.py         # geração dos dados sintéticos
+├── etl.py                   # atualização das estruturas analíticas
+└── docker-compose.yml       # banco, geração, API e frontend
+```
+
+## Decisões técnicas
+
+- **Agregação no banco:** cálculos recorrentes ficam próximos dos dados e evitam transferir grandes volumes para o frontend.
+- **Filtros na API:** a interface envia somente os parâmetros da análise e recebe respostas já agregadas.
+- **React Query:** centraliza cache, carregamento e invalidação das consultas.
+- **Virtualização:** tabelas extensas usam renderização virtual para preservar a responsividade.
+- **Dados reproduzíveis:** o gerador permite reconstruir o ambiente sem depender de uma base privada.
+
+## Documentação adicional
+
+- [Problema e persona](PROBLEMA.md)
+- [Modelo e volume de dados](DADOS.md)
+- [Quick start](QUICKSTART.md)
+- [Critérios do desafio](AVALIACAO.md)
+- [Declaração de uso de IA](DECLARACAO_IA.md)
+
+## Próximos passos
+
+- adicionar testes automatizados para endpoints e consultas analíticas;
+- medir tempo de resposta antes e depois das views materializadas;
+- publicar uma demonstração e capturas da interface;
+- criar pipeline de CI para build do frontend e validação do backend.
